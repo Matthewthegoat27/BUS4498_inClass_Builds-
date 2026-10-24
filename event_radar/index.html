@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#FBF7F2">
+  <meta name="description" content="Find events hosted by campus clubs and share your club's next event.">
+  <title>Club Event Radar</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <p class="kicker">Cal Poly · Campus clubs</p>
+      <h1>Club Event Radar</h1>
+      <p class="lede">Find your next campus event, or share what your club is planning. Posts are checked before they appear.</p>
+      <ul class="badges" aria-label="Event board features">
+        <li>Made for students</li>
+        <li>Free food filter</li>
+        <li>Clear event details</li>
+      </ul>
+    </div>
+  </header>
+
+  <main class="wrap layout">
+    <section class="card post" aria-labelledby="post-title">
+      <p class="kicker">For club officers</p>
+      <h2 id="post-title">Post an event</h2>
+      <p class="muted">Paste your club announcement. The event checker will organize the details and check the posting rules.</p>
+      <form id="event-form">
+        <label for="announcement">
+          Your announcement
+          <span class="hint">Include the date, start time, and campus place. Up to 2,000 characters.</span>
+        </label>
+        <textarea id="announcement" name="announcement" maxlength="2000" required placeholder="Example: Board Game Guild: Game Night! Thursday, October 29, 7 to 10 pm in the University Union, Room 220. Free entry and free pizza while it lasts."></textarea>
+        <button id="submit-button" type="submit">Check and post</button>
+      </form>
+      <div id="post-result" class="result" role="status" aria-live="polite" hidden></div>
+    </section>
+
+    <section class="board-section" aria-labelledby="board-title">
+      <div class="board-head">
+        <div>
+          <p class="kicker">What’s happening</p>
+          <h2 id="board-title">Upcoming events</h2>
+        </div>
+        <button id="refresh-button" class="ghost" type="button">Refresh</button>
+      </div>
+      <p id="board-status" class="muted" role="status" aria-live="polite">Loading events…</p>
+      <div class="filters" aria-label="Filter events">
+        <button class="chip" type="button" data-filter="all" aria-pressed="true">All events</button>
+        <button class="chip" type="button" data-filter="food" aria-pressed="false">🍕 Free food</button>
+      </div>
+      <ul id="event-board" class="board" aria-live="polite"></ul>
+    </section>
+  </main>
+
+  <footer class="wrap foot">
+    <p>Club Event Radar is a BUS 4498 practice project. Check event details with the hosting club.</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
