@@ -1,94 +1,126 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#FBF7F2">
-  <meta name="description" content="Find events hosted by campus clubs and share your club's next event.">
-  <title>Club Event Radar</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Club Event Radar</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="top">
-    <div class="wrap">
-      <p class="kicker">Cal Poly · Campus clubs</p>
-      <h1>Club Event Radar</h1>
-      <p class="lede">Find your next campus event, or share what your club is planning. Posts are checked before they appear.</p>
-      <ul class="badges" aria-label="Event board features">
-        <li>Made for students</li>
-        <li>Free food filter</li>
-        <li>Clear event details</li>
-      </ul>
+<header class="topbar">
+  <div class="wrap bar">
+    <a class="brand" href="#top"><span class="logo" aria-hidden="true"></span>Club Event Radar</a>
+    <nav class="actions" aria-label="Site actions">
+      <span class="live" id="live" title="The board updates by itself"><span class="dot" aria-hidden="true"></span>Live</span>
+      <button type="button" class="ghost small" id="openPost">+ Post<span class="long"> an event</span></button>
+      <button type="button" class="ghost small" id="openMod">Moderator</button>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" id="top">
+  <div class="wrap">
+    <p class="kicker">Campus clubs · live board</p>
+    <h1>What’s happening <em>on campus</em></h1>
+    <p class="lede">Clubs post in their chat. An AI agent turns each post into a card, checks the posting rules, and remembers what it already posted.</p>
+    <ul class="stats" aria-label="Board summary">
+      <li><b id="statCount">0</b><span>events</span></li>
+      <li><b id="statWeek">0</b><span>this week</span></li>
+      <li><b id="statFood">0</b><span>with free food</span></li>
+    </ul>
+  </div>
+</section>
+
+<main class="wrap" id="main">
+  <div class="toolbar">
+    <div class="filters" id="filters" role="group" aria-label="Show">
+      <button type="button" class="chip" data-filter="all" aria-pressed="true">All</button>
+      <button type="button" class="chip" data-filter="week" aria-pressed="false">This week</button>
+      <button type="button" class="chip" data-filter="food" aria-pressed="false">🍕 Free food</button>
+      <button type="button" class="chip" data-filter="online" aria-pressed="false">Online</button>
     </div>
-  </header>
+    <button type="button" class="ghost small" id="refreshBtn">Refresh</button>
+  </div>
+  <p id="boardStatus" class="muted status" role="status" aria-live="polite"></p>
+  <div id="board" class="board"></div>
+</main>
 
-  <main class="wrap layout">
-    <section class="card post" aria-labelledby="post-title">
-      <p class="kicker">For club officers</p>
-      <h2 id="post-title">Post an event</h2>
-      <p class="muted">Paste your club announcement. The event checker will organize the details and check the posting rules.</p>
-      <form id="event-form">
-        <label for="announcement">
-          Your announcement
-          <span class="hint">Include the date, start time, and campus place. Up to 2,000 characters.</span>
-        </label>
-        <textarea id="announcement" name="announcement" maxlength="2000" required placeholder="Example: Board Game Guild: Game Night! Thursday, October 29, 7 to 10 pm in the University Union, Room 220. Free entry and free pizza while it lasts."></textarea>
-        <label for="flyer">
-          Flyer photo (optional)
-          <span class="hint">Upload one JPG or PNG image, up to 5 MB. Posts with a photo wait for a moderator.</span>
-        </label>
-        <input id="flyer" name="flyer" type="file" accept="image/jpeg,image/png">
-        <button id="submit-button" type="submit">Check and post</button>
-      </form>
-      <div id="post-result" class="result" role="status" aria-live="polite" hidden></div>
-    </section>
+<footer class="wrap foot">
+  <p>A practice website for BUS 4498 · Dr. Bingyi Wu, Cal Poly. The clubs and events are made up. <span id="aiNote"></span></p>
+</footer>
 
-    <section class="board-section" aria-labelledby="board-title">
-      <div class="board-head">
-        <div>
-          <p class="kicker">What’s happening</p>
-          <h2 id="board-title">Upcoming events</h2>
-        </div>
-        <button id="refresh-button" class="ghost" type="button">Refresh</button>
-      </div>
-      <p id="board-status" class="muted" role="status" aria-live="polite">Loading events…</p>
-      <div class="filters" aria-label="Filter events">
-        <button class="chip" type="button" data-filter="all" aria-pressed="true">All events</button>
-        <button class="chip" type="button" data-filter="food" aria-pressed="false">🍕 Free food</button>
-      </div>
-      <ul id="event-board" class="board" aria-live="polite"></ul>
-    </section>
-  </main>
-
-  <details id="moderator-panel" class="wrap card mod">
-    <summary>Moderator sign-in</summary>
-    <p class="muted">Sign in with the moderator account created in Supabase to review posts waiting for approval.</p>
-    <form id="moderator-signin-form">
-      <label for="moderator-email">Email</label>
-      <input id="moderator-email" name="email" type="email" autocomplete="username" required>
-      <label for="moderator-password">Password</label>
-      <input id="moderator-password" name="password" type="password" autocomplete="current-password" required>
-      <button id="moderator-signin-button" type="submit">Sign in</button>
+<!-- Post an event: an add-on, folded into the menu. Most posts arrive from the club chat. -->
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="postDrawer" aria-labelledby="postTitle" hidden>
+  <div class="panel">
+    <header class="panel-head">
+      <h2 id="postTitle">Post an event</h2>
+      <button type="button" class="close" data-close="postDrawer" aria-label="Close">✕</button>
+    </header>
+    <p class="muted">Most posts come straight from the club chat. Use this when you want to post by hand.</p>
+    <form id="postForm">
+      <label for="announcement">Announcement <span class="hint">Paste the Instagram caption, group-chat message, or flyer text.</span></label>
+      <textarea id="announcement" name="announcement" rows="6" maxlength="2000" required placeholder="Board Game Guild: Game Night! Thursday, 7 to 10 pm in the University Union, Room 220. Free pizza!"></textarea>
+      <label for="flyer">Flyer photo <span class="hint">Optional. JPG or PNG, up to 5 MB. Posts with a photo wait for a moderator.</span></label>
+      <input id="flyer" name="flyer" type="file" accept="image/jpeg,image/png">
+      <button type="submit" id="postBtn">Post it</button>
     </form>
-    <p id="moderator-message" class="muted" role="status" aria-live="polite">Sign in to review waiting posts.</p>
-    <div id="moderator-session" hidden>
-      <div class="board-head">
-        <div>
-          <h3>Posts waiting for review</h3>
-        </div>
-        <button id="moderator-signout-button" class="ghost" type="button">Sign out</button>
+    <div id="postResult" class="result" role="status" aria-live="polite" hidden></div>
+  </div>
+</aside>
+
+<!-- Moderator: sign-in, the review queue, the agent's lessons, and the board tools. Visitors never see this. -->
+<aside class="drawer" id="modDrawer" aria-labelledby="modTitle" hidden>
+  <div class="panel">
+    <header class="panel-head">
+      <h2 id="modTitle">Moderator</h2>
+      <button type="button" class="close" data-close="modDrawer" aria-label="Close">✕</button>
+    </header>
+    <form id="signInForm">
+      <label for="modEmail">Email</label>
+      <input id="modEmail" type="email" autocomplete="username" required>
+      <label for="modPassword">Password</label>
+      <input id="modPassword" type="password" autocomplete="current-password" required>
+      <button type="submit" id="signInBtn">Sign in</button>
+      <p id="signInMsg" class="muted" role="status"></p>
+    </form>
+    <div id="modArea" hidden>
+      <p class="who">Signed in as <b id="modWho"></b> <button type="button" class="ghost small" id="signOutBtn">Sign out</button></p>
+      <div class="tabs" role="tablist" aria-label="Moderator sections">
+        <button type="button" class="tab" role="tab" data-tab="waiting" aria-selected="true">Waiting <span class="count" id="waitingCount">0</span></button>
+        <button type="button" class="tab" role="tab" data-tab="lessons" aria-selected="false">Lessons <span class="count" id="lessonsCount">0</span></button>
+        <button type="button" class="tab" role="tab" data-tab="tools" aria-selected="false">Tools</button>
       </div>
-      <p id="moderator-status" class="muted" role="status" aria-live="polite"></p>
-      <ul id="waiting-board" class="board" aria-live="polite"></ul>
+      <section class="tabpanel" data-panel="waiting">
+        <p id="waitingStatus" class="muted" role="status"></p>
+        <ul id="waitingList" class="queue"></ul>
+      </section>
+      <section class="tabpanel" data-panel="lessons" hidden>
+        <p class="muted">The agent reads every lesson that is switched on, with every post. Switch one off to make it forget.</p>
+        <form id="teachForm" class="teach">
+          <label for="lessonText">Teach the agent something <span class="hint">One sentence. A lesson can make a post wait or shape the card. It can’t cancel a posting rule.</span></label>
+          <textarea id="lessonText" rows="2" maxlength="300" required placeholder="Drop-in study hours, tutoring, and office hours aren’t events for this website. Hold them for a moderator."></textarea>
+          <button type="submit" id="teachBtn">Save the lesson</button>
+          <p id="teachMsg" class="muted" role="status"></p>
+        </form>
+        <p id="lessonsStatus" class="muted" role="status"></p>
+        <ul id="lessonsList" class="lessons"></ul>
+      </section>
+      <section class="tabpanel" data-panel="tools" hidden>
+        <h3>Clear the board</h3>
+        <p class="muted">Deletes every post, published or not. The club list and the lessons stay. Use it to start a demo clean.</p>
+        <button type="button" class="danger" id="clearBtn">Clear the board…</button>
+        <p id="toolsMsg" class="muted" role="status"></p>
+      </section>
     </div>
-  </details>
+  </div>
+</aside>
 
-  <footer class="wrap foot">
-    <p>Club Event Radar is a BUS 4498 practice project. Check event details with the hosting club.</p>
-  </footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
