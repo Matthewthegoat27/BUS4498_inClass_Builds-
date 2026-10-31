@@ -247,23 +247,34 @@
     }
   }
   function review(ev, status) {
-    var stamp = { reviewed_at: new Date().toISOString(), reviewed_by: session.user.email };
+    var stamp = { reviewed_at: new Date().toISOString(), reviewed_by: session.user.id };
     db.from("events")
       .update({ status: status, reviewed_at: stamp.reviewed_at, reviewed_by: stamp.reviewed_by })
       .eq("id", ev.id)
       .then(function (res) {
-        if (res.error) { $("waitingStatus").textContent = "Couldn't save that: " + res.error.message; return; }
+        if (res.error) { $("waitingStatus").textContent = "Couldn't save that: " + res.error.message; return false; }
         // Approving an update retires the post it replaces, so the website never shows both.
         if (status === "published" && ev.updates_id) {
           return db.from("events")
             .update({ status: "replaced", status_reason: "Replaced by a newer post the moderator approved.", reviewed_at: stamp.reviewed_at, reviewed_by: stamp.reviewed_by })
-            .eq("id", ev.updates_id).in("status", ["published", "waiting"]);
+            .eq("id", ev.updates_id).in("status", ["published", "waiting"])
+            .select("id").maybeSingle()
+            .then(function (prior) {
+              if (prior.error) throw prior.error;
+              if (!prior.data) throw new Error("The earlier post was no longer active.");
+            });
         }
       })
-      .then(function () {
+      .then(function (res) {
+        if (res === false) return;
+        if (res && res.error) { $("waitingStatus").textContent = "Couldn't save that: " + res.error.message; return; }
         toast(status === "published" ? "Approved and posted" : "Rejected");
         loadWaiting();
         loadBoard(true);
+      })
+      .catch(function (error) {
+        $("waitingStatus").textContent = "The update was approved, but the earlier post could not be retired: " + (error.message || "unknown error");
+        loadWaiting();
       });
   }
   function loadWaiting() {
@@ -292,7 +303,13 @@
           approve.type = reject.type = "button";
           function decideThen(status) {
             var lesson = teachInput.value.trim();
-            if (lesson) { saveLesson(lesson, ev.id).then(function () { review(ev, status); }); return; }
+            if (lesson) {
+              saveLesson(lesson, ev.id).then(function (res) {
+                if (res.error) { $("waitingStatus").textContent = "The lesson wasn't saved, so the post is still waiting: " + res.error.message; return; }
+                review(ev, status);
+              });
+              return;
+            }
             review(ev, status);
           }
           approve.addEventListener("click", function () { decideThen("published"); });
@@ -338,11 +355,17 @@
 
   /* ---------- lessons: what moderators teach the agent ---------- */
   function saveLesson(text, fromPost) {
-    return db.from("lessons").insert({ lesson: text.slice(0, 300), created_by: session.user.email, from_post: fromPost || null })
+    text = text.trim();
+    if (text.length < 5 || text.length > 300) {
+      $("teachMsg").textContent = "A lesson must be between 5 and 300 characters.";
+      return Promise.resolve({ error: new Error("A lesson must be between 5 and 300 characters.") });
+    }
+    return db.from("lessons").insert({ lesson: text, created_by: session.user.email, from_post: fromPost || null })
       .then(function (res) {
         $("teachMsg").textContent = res.error ? "Couldn't save the lesson: " + res.error.message : "Saved. The agent reads it with the next post.";
         if (!res.error) toast("Lesson saved");
         loadLessons();
+        return res;
       });
   }
   function loadLessons() {
@@ -383,7 +406,7 @@
     e.preventDefault();
     var text = $("lessonText").value.trim();
     if (!text) return;
-    saveLesson(text, null).then(function () { $("lessonText").value = ""; });
+    saveLesson(text, null).then(function (res) { if (!res.error) $("lessonText").value = ""; });
   });
 
   loadBoard(false);
